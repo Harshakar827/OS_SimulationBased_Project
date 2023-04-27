@@ -1,0 +1,74 @@
+#include <iostream>
+#include <queue>
+using namespace std;
+
+struct Process {
+    int pid;  // process ID
+    int burst_time;  // time required for the process to complete
+    int priority;  // process priority
+    int remaining_time;  // time left for the process to complete
+};
+
+struct ComparePriority {
+    bool operator()(const Process& p1, const Process& p2) const {
+        return p1.priority > p2.priority;
+    }
+};
+
+struct CompareRemainingTime {
+    bool operator()(const Process& p1, const Process& p2) const {
+        return p1.remaining_time > p2.remaining_time;
+    }
+};
+
+int main() {
+    queue<Process> q1, q2;  // queues for level 1 and level 2 processes
+    int time_quantum = 2;  // time quantum for level 2 processes
+
+    // add some processes to level 1 queue for testing
+    q1.push({1, 8, 0, 8});
+    q1.push({2, 10, 1, 10});
+    q1.push({3, 4, 2, 4});
+    q1.push({4, 6, 3, 6});
+
+    int current_time = 0;
+    while (!q1.empty() || !q2.empty()) {
+        if (!q1.empty()) {
+            // execute highest priority process in level 1 queue
+            Process p1 = q1.front();
+            q1.pop();
+            cout << "Executing process " << p1.pid << " from level 1 queue at time " << current_time << endl;
+            p1.remaining_time -= time_quantum;
+            current_time += time_quantum;
+
+            if (p1.remaining_time > 0) {
+                // add the process to level 2 queue if it still has remaining time
+                q2.push(p1);
+            }
+            else {
+                // process has completed, do not add it back to any queue
+                cout << "Process " << p1.pid << " from level 1 queue has completed at time " << current_time << endl;
+            }
+
+            // check if a new process with higher priority has arrived in level 1 queue
+            if (!q1.empty() && q1.front().priority < p1.priority) {
+                // preempt currently running process and move it to level 2 queue
+                q2.push({p1.pid, p1.burst_time, p1.priority, p1.remaining_time});
+                p1 = q1.front();
+                q1.pop();
+                cout << "Process " << p1.pid << " from level 1 queue preempted at time " << current_time << endl;
+                q1.push(p1);
+            }
+        }
+        else {
+            // execute shortest remaining time process in level 2 queue
+            Process p2 = q2.front();
+            q2.pop();
+            cout << "Executing process " << p2.pid << " from level 2 queue at time " << current_time << endl;
+            current_time += p2.remaining_time;
+            cout << "Process " << p2.pid << " from level 2 queue has completed at time " << current_time << endl;
+        }
+    }
+
+    return 0;
+}
